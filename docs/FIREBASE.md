@@ -20,3 +20,5 @@ node tools/check-backend.mjs
 ```
 
 El script comprueba que el dueño puede guardar su teléfono, que el directorio solo devuelve alias y foto, que el comentario y el contador coinciden y que el contenido del chat permanece entre sus participantes. Las cuentas que crea son de prueba.
+
+Para verificar el registro y el reingreso desde Android ejecuta `./gradlew :app:connectedDebugAndroidTest` con una instalación limpia en un emulador y Firebase Emulator Suite activo.

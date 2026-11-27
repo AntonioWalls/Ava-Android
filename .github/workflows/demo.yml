@@ -21,7 +21,7 @@ jobs:
           distribution: temurin
           java-version: "21"
       - name: Build and lint both apps
-        run: ./gradlew --no-daemon :app:assembleDebug :app:testDebugUnitTest :app:lintDebug :demo:assembleDebug :demo:assembleDebugAndroidTest :demo:lintDebug
+        run: ./gradlew --no-daemon :app:assembleDebug :app:assembleDebugAndroidTest :app:testDebugUnitTest :app:lintDebug :demo:assembleDebug :demo:assembleDebugAndroidTest :demo:lintDebug
       - name: Check the APK
         run: |
           apk=demo/build/outputs/apk/debug/demo-debug.apk
