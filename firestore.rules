@@ -1,0 +1,122 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Users stores the owner's contact details; PublicProfiles is the signed-in directory.
+    // Posts owns its comments. Messages stores two immutable participants and its chats.
+    function signedIn() { return request.auth != null; }
+    function owns(uid) { return signedIn() && request.auth.uid == uid; }
+    function text(value, max) { return value is string && value.size() <= max; }
+    function optionalText(value, max) { return value == null || text(value, max); }
+    function publicProfile(data, uid) {
+      return data.keys().hasOnly(['userid', 'userName', 'imageUrl'])
+        && data.userid == uid && text(data.userName, 100) && text(data.imageUrl, 2048);
+    }
+    function privateProfile(data, uid) {
+      return data.keys().hasOnly(['userid','userName','imageUrl','fullName','phone','userMail','status'])
+        && data.userid == uid && text(data.userName, 100) && text(data.fullName, 150)
+        && optionalText(data.imageUrl, 2048) && optionalText(data.phone, 40)
+        && text(data.userMail, 254) && text(data.status, 16);
+    }
+    match /Users/{uid} {
+      allow get: if owns(uid);
+      allow create: if owns(uid) && privateProfile(request.resource.data, uid)
+        && request.resource.data.userMail == request.auth.token.email;
+      allow update: if owns(uid) && privateProfile(request.resource.data, uid)
+        && request.resource.data.userMail == resource.data.userMail;
+    }
+    match /PublicProfiles/{uid} {
+      allow get: if signedIn();
+      allow list: if signedIn() && request.query.limit <= 100;
+      allow create, update: if owns(uid) && publicProfile(request.resource.data, uid);
+    }
+    function validPost(data, postId) {
+      return data.keys().hasOnly(['id','userId','userName','userProfileImageUrl','text','imageUrl',
+        'videoUrl','timestamp','likesCount','likedBy','commentsCount','lastCommentId'])
+        && data.id == postId && text(data.userId, 128) && optionalText(data.userName, 100)
+        && optionalText(data.userProfileImageUrl, 2048) && optionalText(data.text, 4000)
+        && optionalText(data.imageUrl, 2048) && data.videoUrl == null && data.timestamp is timestamp
+        && data.likedBy is list && data.likedBy.size() <= 500
+        && data.likesCount == data.likedBy.size() && data.commentsCount is int
+        && data.commentsCount >= 0;
+    }
+    function onlyOwnLike() {
+      let before = resource.data.likedBy.toSet();
+      let after = request.resource.data.likedBy.toSet();
+      let uid = request.auth.uid;
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likedBy','likesCount'])
+        && request.resource.data.likedBy.size() == after.size()
+        && before.difference(after).hasOnly([uid])
+        && after.difference(before).hasOnly([uid]);
+    }
+    function newComment(postId) {
+      let id = request.resource.data.lastCommentId;
+      let path = /databases/$(database)/documents/Posts/$(postId)/Comments/$(id);
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['commentsCount','lastCommentId'])
+        && request.resource.data.commentsCount == resource.data.commentsCount + 1
+        && !exists(path) && getAfter(path).data.userId == request.auth.uid;
+    }
+    match /Posts/{postId} {
+      allow get: if signedIn();
+      allow list: if signedIn() && request.query.limit <= 100;
+      allow create: if signedIn() && validPost(request.resource.data, postId)
+        && request.resource.data.userId == request.auth.uid && request.resource.data.likedBy.size() == 0
+        && request.resource.data.commentsCount == 0 && !('lastCommentId' in request.resource.data);
+      allow update: if signedIn() && validPost(request.resource.data, postId)
+        && (onlyOwnLike() || newComment(postId));
+      match /Comments/{commentId} {
+        function validComment(data) {
+          return data.keys().hasOnly(['id','postId','userId','userName','userProfileImageUrl','text','timestamp'])
+            && data.id == commentId && data.postId == postId && data.userId == request.auth.uid
+            && optionalText(data.userName, 100) && optionalText(data.userProfileImageUrl, 2048)
+            && text(data.text, 2000) && data.text.size() > 0 && data.timestamp is timestamp;
+        }
+        allow get: if signedIn();
+        allow list: if signedIn() && request.query.limit <= 100;
+        allow create: if signedIn() && validComment(request.resource.data)
+          && getAfter(/databases/$(database)/documents/Posts/$(postId)).data.lastCommentId == commentId;
+      }
+    }
+    function validRoom(data, roomId) {
+      return data.keys().hasOnly(['participants','lastMessageId','lastMessageAt'])
+        && data.participants is list && data.participants.size() == 2
+        && data.participants[0] != data.participants[1]
+        && text(data.participants[0], 128) && text(data.participants[1], 128)
+        && (roomId == data.participants[0] + '-' + data.participants[1]
+            || roomId == data.participants[1] + '-' + data.participants[0])
+        && request.auth.uid in data.participants;
+    }
+    function roomMember(roomId) {
+      return signedIn()
+        && request.auth.uid in get(/databases/$(database)/documents/Messages/$(roomId)).data.participants;
+    }
+    match /Messages/{roomId} {
+      function updatedSummary(data) {
+        let id = data.lastMessageId;
+        let path = /databases/$(database)/documents/Messages/$(roomId)/chats/$(id);
+        return data.lastMessageAt == request.time && !exists(path)
+          && getAfter(path).data.sender == request.auth.uid;
+      }
+      allow get: if signedIn() && request.auth.uid in resource.data.participants;
+      allow create: if signedIn() && validRoom(request.resource.data, roomId)
+        && request.resource.data.keys().hasOnly(['participants'])
+        && exists(/databases/$(database)/documents/PublicProfiles/$(request.resource.data.participants[0]))
+        && exists(/databases/$(database)/documents/PublicProfiles/$(request.resource.data.participants[1]));
+      allow update: if signedIn() && validRoom(request.resource.data, roomId)
+        && request.resource.data.participants == resource.data.participants
+        && (request.resource.data == resource.data || updatedSummary(request.resource.data));
+      match /chats/{messageId} {
+        function validMessage(data) {
+          return data.keys().hasOnly(['id','sender','receiver','message','time'])
+            && data.id == messageId && data.sender == request.auth.uid
+            && data.receiver != data.sender
+            && data.receiver in get(/databases/$(database)/documents/Messages/$(roomId)).data.participants
+            && text(data.message, 2000) && data.message.size() > 0 && data.time == request.time;
+        }
+        allow get: if roomMember(roomId);
+        allow list: if roomMember(roomId) && request.query.limit <= 100;
+        allow create: if roomMember(roomId) && validMessage(request.resource.data)
+          && getAfter(/databases/$(database)/documents/Messages/$(roomId)).data.lastMessageId == messageId;
+      }
+    }
+  }
+}

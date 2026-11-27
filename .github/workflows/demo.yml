@@ -1,0 +1,41 @@
+name: Ava Android
+
+on: [push, pull_request, workflow_dispatch]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          lfs: false
+          persist-credentials: false
+        env:
+          GIT_LFS_SKIP_SMUDGE: "1"
+      - uses: actions/setup-java@d1374f8ac74474200d16ef8ecee22c7ae7a51880 # v6.3.0
+        with:
+          distribution: temurin
+          java-version: "21"
+      - name: Build and lint both apps
+        run: ./gradlew --no-daemon :app:assembleDebug :app:testDebugUnitTest :app:lintDebug :demo:assembleDebug :demo:assembleDebugAndroidTest :demo:lintDebug
+      - name: Check the APK
+        run: |
+          apk=demo/build/outputs/apk/debug/demo-debug.apk
+          test "$(wc -c < "$apk")" -lt 50000000
+          aapt=$(find "$ANDROID_HOME/build-tools" -type f -name aapt | sort -V | tail -1)
+          permissions=$("$aapt" dump permissions "$apk")
+          if grep -Eq 'android.permission.(INTERNET|ACCESS_NETWORK_STATE)' <<< "$permissions"; then
+            echo "The offline demo declares a network permission."
+            exit 1
+          fi
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ava-android-apks
+          path: |
+            app/build/outputs/apk/debug/app-debug.apk
+            demo/build/outputs/apk/debug/demo-debug.apk
+          if-no-files-found: error

@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Ava Demo</string>
+    <string name="practice_title">Seguimiento de la respiración</string>
+    <string name="open_practice">Escuchar práctica</string>
+    <string name="continue_practice">Continuar desde %1$s</string>
+    <string name="repeat_practice">Repetir práctica</string>
+    <string name="practice_completed">Práctica completada</string>
+    <string name="practice_guide">El tono ascendente indica cuándo inhalar y el descendente cuándo exhalar. Si lo prefieres, mantén tu propio ritmo.</string>
+    <string name="back_to_lesson">Volver a la enseñanza</string>
+    <string name="audio_loading">Preparando audio…</string>
+    <string name="audio_unavailable">No se pudo abrir el audio de la práctica.</string>
+    <string name="audio_interrupted">Reproducción interrumpida.</string>
+    <string name="audio_seek">Posición del audio</string>
+    <string name="audio_play">Reproducir</string>
+    <string name="audio_pause">Pausar</string>
+    <string name="audio_replay">Volver a reproducir</string>
+    <string name="retry">Reintentar</string>
+    <string name="demo_lesson_category">Meditación</string>
+    <string name="demo_lesson_page_2">Cuando notes que tu mente se fue a otra cosa, vuelve con calma a la siguiente respiración. Ese regreso es parte de la práctica. Puedes probarlo durante dos minutos con los tonos que acompañan esta enseñanza.</string>
+    <string name="demo_lesson_page_1">En muchas tradiciones budistas, prestar atención a la respiración es una forma de practicar la atención plena. Puedes notar el aire al entrar y salir, o el movimiento del abdomen, mientras respiras a tu ritmo habitual.</string>
+    <string name="demo_lesson_description">Una introducción breve a la atención en la respiración.</string>
+    <string name="demo_lesson_title">Sistema de Meditación</string>
+</resources>
