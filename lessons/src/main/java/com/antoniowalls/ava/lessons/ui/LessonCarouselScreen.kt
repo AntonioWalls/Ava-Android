@@ -13,6 +13,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -100,7 +101,9 @@ fun LessonCarouselScreen(
                 .padding(horizontal = UiDimensions.base, vertical = UiDimensions.large),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            val pagerState = rememberPagerState(pageCount = { lesson.texts.size })
+            val pageCount = lesson.texts.size
+            val countPages = remember(pageCount) { { pageCount } }
+            val pagerState = rememberPagerState(pageCount = countPages)
             val scope = rememberCoroutineScope()
             HorizontalPager(
                 state = pagerState,
@@ -143,7 +146,7 @@ fun LessonCarouselScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     TextButton(
-                        enabled = pagerState.currentPage > 0 && !pagerState.isScrollInProgress,
+                        enabled = pagerState.currentPage > 0,
                         onClick = { scope.launch { pagerState.scrollToPage(pagerState.currentPage - 1) } }
                     ) { Text(stringResource(R.string.lesson_previous)) }
                     Text(
@@ -151,7 +154,7 @@ fun LessonCarouselScreen(
                         style = MaterialTheme.typography.labelLarge
                     )
                     TextButton(
-                        enabled = pagerState.currentPage < pagerState.pageCount - 1 && !pagerState.isScrollInProgress,
+                        enabled = pagerState.currentPage < pageCount - 1,
                         onClick = { scope.launch { pagerState.scrollToPage(pagerState.currentPage + 1) } }
                     ) { Text(stringResource(R.string.lesson_next)) }
                 }
