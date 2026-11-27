@@ -14,8 +14,6 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performSemanticsAction
-import androidx.compose.ui.test.performTouchInput
-import androidx.compose.ui.test.swipeLeft
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.antoniowalls.ava.demo.practice.PRACTICE_PROGRESS_FILE
@@ -44,7 +42,7 @@ class DemoActivityTest {
         compose.onNodeWithText("Sistema de Meditación").assertIsDisplayed()
         val firstPage = compose.onNodeWithText("En muchas tradiciones budistas", substring = true)
         firstPage.assertIsDisplayed()
-        firstPage.performTouchInput { swipeLeft() }
+        compose.onNodeWithText("Siguiente").performClick()
         val secondPage = compose.onNodeWithText("Cuando notes que tu mente", substring = true)
         secondPage.assertIsDisplayed()
         compose.onNodeWithText("Anterior").performClick()

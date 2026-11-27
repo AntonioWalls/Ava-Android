@@ -178,7 +178,7 @@ private fun PracticePlayer(player: Player) {
                 player.play()
             }
         },
-        enabled = state.playRequested || !state.loading,
+        enabled = state.playRequested || !state.loading || duration > 0,
         modifier = Modifier.fillMaxWidth()
     ) {
         Text(stringResource(buttonLabel))
